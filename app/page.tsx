@@ -27,52 +27,16 @@ const presetGroups = [
     {
         label: "Film Preset",
         options: [
-            { value: 'Film1.cube', label: 'Film 01' },
-            { value: 'Film2.cube', label: 'Film 02' },
-            { value: 'Film3.cube', label: 'Film 03' },
-            { value: 'Film4.cube', label: 'Film 04' },
-            { value: 'Film5.cube', label: 'Film 05' },
-            { value: 'Film6.cube', label: 'Film 06' },
-            { value: 'Film7.cube', label: 'Film 07' },
-            { value: 'Film8.cube', label: 'Film 08' },
-            { value: 'Film9.cube', label: 'Film 09' },
             { value: 'Film10.cube', label: 'Film 10' },
         ],
     },
     {
         label: "Signature Preset",
         options: [
-            { value: 'DarkMoody1.cube', label: 'Dark Moody 01' },
-            { value: 'DarkMoody2.cube', label: 'Dark Moody 02' },
-            { value: 'DarkMoody3.cube', label: 'Dark Moody 03' },
-            { value: 'DarkMoody4.cube', label: 'Dark Moody 04' },
-            { value: 'DarkMoody5.cube', label: 'Dark Moody 05' },
-            { value: 'Green1.cube', label: 'Green 01' },
-            { value: 'Green2.cube', label: 'Green 02' },
-            { value: 'Green3.cube', label: 'Green 03' },
-            { value: 'Green4.cube', label: 'Green 04' },
-            { value: 'Green5.cube', label: 'Green 05' },
-            { value: 'Green6.cube', label: 'Green 06' },
-            { value: 'Green7.cube', label: 'Green 07' },
-            { value: 'Green8.cube', label: 'Green 08' },
-            { value: 'Sunset1.cube', label: 'Sunset 01' },
-            { value: 'Sunset2.cube', label: 'Sunset 02' },
-            { value: 'Sunset3.cube', label: 'Sunset 03' },
-            { value: 'Sunset4.cube', label: 'Sunset 04' },
-            { value: 'Sunset5.cube', label: 'Sunset 05' },
-            { value: 'DarkBrown1.cube', label: 'Dark Brown 01' },
-            { value: 'DarkBrown2.cube', label: 'Dark Brown 02' },
-            { value: 'Bluish.cube', label: 'Bluish' },
-            { value: 'Earthy.cube', label: 'Earthy' },
-            { value: 'Foogy.cube', label: 'Foogy' },
             { value: 'Misty.cube', label: 'Misty' },
         ],
     }
 ];
-
-// ================================================================================
-// LOGIKA UNTUK PRATINJAU (CLIENT-SIDE)
-// ================================================================================
 
 const parseCubeFileForPreview = async (url: string): Promise<Lut | null> => {
     try {
