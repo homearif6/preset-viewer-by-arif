@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback, ChangeEvent, DragEvent } from 'react';
+import { ImageProcessor } from '../utils/imageProcessor';
 
 // Custom hook for debouncing a value
 function useDebounce<T>(value: T, delay: number): T {
@@ -104,7 +105,9 @@ export default function App() {
     const [isLutLoading, setIsLutLoading] = useState<boolean>(false);
     const [isCanvasBusy, setIsCanvasBusy] = useState<boolean>(false);
     const [lastChangedSlider, setLastChangedSlider] = useState<string | null>(null);
-    const [buyLink, setBuyLink] = useState<string>('https://masarif.id'); // New state for dynamic link
+    const [buyLink, setBuyLink] = useState<string>('https://masarif.id');
+    const [fileProcessingMessage, setFileProcessingMessage] = useState<string | null>(null);
+    const [isProcessingFile, setIsProcessingFile] = useState<boolean>(false);
 
     // UI states (update instantly)
     const [exposure, setExposure] = useState<number>(0);
@@ -227,30 +230,58 @@ export default function App() {
 
     }, [previewImage, activeLut, debouncedExposure, debouncedWhiteBalance, debouncedHighlights, debouncedShadows, debouncedGrain, isLutLoading]);
 
-    // Handler untuk input file
-    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    // Enhanced file handler with format support
+    const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const resultSrc = event.target?.result as string;
-                setFullResImageSrc(resultSrc);
-                const img = new Image();
-                img.onload = () => {
-                    const maxW = 1280;
-                    const ratio = img.width > maxW ? maxW / img.width : 1;
-                    const canvas = document.createElement("canvas");
-                    canvas.width = img.width * ratio;
-                    canvas.height = img.height * ratio;
-                    const ctx = canvas.getContext("2d");
-                    ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    const resizedImage = new Image();
-                    resizedImage.onload = () => { setPreviewImage(resizedImage); };
-                    resizedImage.src = canvas.toDataURL();
+        if (!file) return;
+
+        setIsProcessingFile(true);
+        setFileProcessingMessage(null);
+        setErrorMessage(null);
+
+        try {
+            // Check file info first
+            const fileInfo = ImageProcessor.getFileInfo(file);
+            
+            if (!fileInfo.isSupported) {
+                throw new Error(fileInfo.message || 'Format file tidak didukung');
+            }
+
+            if (fileInfo.needsConversion && fileInfo.message) {
+                setFileProcessingMessage(fileInfo.message);
+            }
+
+            // Process the file
+            const resultSrc = await ImageProcessor.processFile(file);
+            setFullResImageSrc(resultSrc);
+            
+            const img = new Image();
+            img.onload = () => {
+                const maxW = 1280;
+                const ratio = img.width > maxW ? maxW / img.width : 1;
+                const canvas = document.createElement("canvas");
+                canvas.width = img.width * ratio;
+                canvas.height = img.height * ratio;
+                const ctx = canvas.getContext("2d");
+                ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const resizedImage = new Image();
+                resizedImage.onload = () => { 
+                    setPreviewImage(resizedImage);
+                    setFileProcessingMessage(null);
+                    setIsProcessingFile(false);
                 };
-                img.src = resultSrc;
+                resizedImage.src = canvas.toDataURL();
             };
-            reader.readAsDataURL(file);
+            img.onerror = () => {
+                throw new Error('Gagal memuat gambar. File mungkin corrupt atau format tidak didukung sepenuhnya.');
+            };
+            img.src = resultSrc;
+
+        } catch (error: any) {
+            setErrorMessage(error.message);
+            setIsProcessingFile(false);
+            setFileProcessingMessage(null);
+            setTimeout(() => setErrorMessage(null), 5000);
         }
     };
 
@@ -363,6 +394,7 @@ export default function App() {
     const resetAll = () => {
         setPreviewImage(null);
         setFullResImageSrc(null);
+        setFileProcessingMessage(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
         resetSliders();
     };
@@ -399,6 +431,12 @@ export default function App() {
              {errorMessage && (
                     <div className="fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg z-[110] animate-pulse">
                         {errorMessage}
+                    </div>
+             )}
+
+             {fileProcessingMessage && (
+                    <div className="fixed top-5 left-5 bg-blue-500 text-white py-2 px-4 rounded-lg shadow-lg z-[110]">
+                        {fileProcessingMessage}
                     </div>
              )}
 
@@ -467,6 +505,7 @@ export default function App() {
 
             <header className="flex-shrink-0 text-center py-4 bg-white/80 backdrop-blur-sm">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Preview Preset by @masarif.id</h1>
+                <p className="text-sm text-gray-600 mt-1">Mendukung JPG, PNG, HEIC, TIFF, dan format lainnya</p>
             </header>
             
             <main className="container mx-auto max-w-full px-4 sm:px-6 lg:px-8 flex-grow flex flex-col min-h-0">
@@ -479,13 +518,36 @@ export default function App() {
                                 onDragOver={handleDragOver}
                                 onDrop={handleDrop}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                <p className="mt-4 text-lg font-semibold text-gray-700">Klik atau Drop Foto di Sini</p>
-                                <p className="text-sm text-gray-500 mt-1">Unggah foto untuk memulai editing</p>
+                                {isProcessingFile ? (
+                                    <div className="flex flex-col items-center">
+                                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+                                        <p className="text-lg font-semibold text-gray-700">Memproses file...</p>
+                                        <p className="text-sm text-gray-500 mt-1">Mohon tunggu sebentar</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                        <p className="mt-4 text-lg font-semibold text-gray-700">Klik atau Drop Foto di Sini</p>
+                                        <p className="text-sm text-gray-500 mt-1">Mendukung JPG, PNG, HEIC, TIFF, dan format lainnya</p>
+                                        <div className="mt-3 text-xs text-gray-400">
+                                            <p>✅ JPG, PNG, GIF, WebP, BMP</p>
+                                            <p>✅ HEIC/HEIF (iPhone)</p>
+                                            <p>✅ TIFF</p>
+                                            <p>❌ RAW (perlu konversi manual)</p>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}
-                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileChange} 
+                        accept="image/*,.heic,.heif,.tiff,.tif" 
+                        className="hidden" 
+                        disabled={isProcessingFile}
+                    />
 
                     {previewImage && (
                         <div className="flex flex-col md:flex-row gap-6 p-4 sm:p-6 flex-grow min-h-0">
